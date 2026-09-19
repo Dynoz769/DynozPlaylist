@@ -1,0 +1,17 @@
+# Data playlist peribadi (disimpan dalam komputer sendiri, bukan dalam repo)
+data/
+
+# Rahsia, contoh YOUTUBE_API_KEY
+.env
+.env.*
+
+# Tetapan tempatan Claude Code
+.claude/
+
+# Fail sementara & sistem
+node_modules/
+*.tmp
+*.log
+Thumbs.db
+desktop.ini
+.DS_Store

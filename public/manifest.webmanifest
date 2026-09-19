@@ -1,0 +1,12 @@
+{
+  "name": "Dynoz Playlist",
+  "short_name": "Dynoz",
+  "description": "Semua playlist aku, dalam satu rak.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#121329",
+  "theme_color": "#121329",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

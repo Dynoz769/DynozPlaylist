@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dynoz Playlist</title>
+  <meta name="description" content="Rak peribadi untuk semua playlist Dynoz: Spotify, YouTube, SoundCloud, Apple Music, dan playlist buatan sendiri.">
+  <meta name="theme-color" content="#ECECF5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121329" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&family=Martian+Mono:wdth,wght@75..112.5,100..800&family=Onest:wght@400..800&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    try {
+      var t = localStorage.getItem('dynoz-playlist:theme');
+      if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+    if (location.protocol === 'file:') document.documentElement.classList.add('is-file');
+  </script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body data-view="rack">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.6 2.55 5.2 5.75.83-4.16 4.06.98 5.72L12 16.72l-5.12 2.69.98-5.72L3.7 9.63l5.75-.83z"/></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12M9 7V4h6v3"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3.5h6V5"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14.2 5M4 12a8 8 0 0 1 14.2-5M18 3v4h-4M6 21v-4h4"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.6" height="14" rx="1"/><rect x="13.9" y="5" width="3.6" height="14" rx="1"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M18 5.5v13L8.5 12z"/><rect x="5.5" y="5.5" width="2.6" height="13" rx="1"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5.5v13l9.5-6.5z"/><rect x="15.9" y="5.5" width="2.6" height="13" rx="1"/></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M16 4h4v4M4 20 20 4M20 16v4h-4M15 15l5 5M4 4l5 5"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-rack" viewBox="0 0 24 24"><rect x="3" y="4" width="4.5" height="16" rx="1"/><rect x="9.5" y="4" width="4.5" height="16" rx="1"/><path d="m16.2 5.1 4.3 1.2-3.9 14.2-4.3-1.2"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5.5l11-2V16"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+    <symbol id="i-list-plus" viewBox="0 0 24 24"><path d="M4 6h12M4 12h12M4 18h7M18 14v7M14.5 17.5h7"/></symbol>
+  </svg>
+
+  <div class="file-warning" id="file-warning">
+    <h1>Buka guna START.bat</h1>
+    <p>App ni perlukan server kecil dia untuk jalan. Double-click <b>START.bat</b> dalam folder DYNOZPLAYLIST (atau taip <code>npm start</code> dalam terminal). Browser akan buka <b>http://localhost:7070</b> sendiri.</p>
+  </div>
+
+  <div class="page">
+    <header class="masthead">
+      <h1 class="wordmark" aria-label="Dynoz Playlist">
+        <span class="wm-main" aria-hidden="true">DYN<span class="wm-disc"></span>Z</span>
+        <span class="wm-sticker" aria-hidden="true">Playlist</span>
+      </h1>
+      <div class="masthead-side">
+        <p class="tagline">Semua playlist aku, dalam satu rak.</p>
+        <p class="stats" id="stats"></p>
+      </div>
+    </header>
+
+    <div class="toolbar" id="toolbar">
+      <nav class="viewtabs" id="viewtabs" aria-label="Paparan">
+        <button type="button" class="viewtab" data-view="rack" aria-pressed="true"><svg class="i" aria-hidden="true"><use href="#i-rack"/></svg><span>Rak aku</span></button>
+        <button type="button" class="viewtab" data-view="songs" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg><span>Cari lagu</span></button>
+      </nav>
+      <label class="search">
+        <span class="sr-only" id="search-label">Cari playlist dalam rak</span>
+        <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+        <input id="search" type="search" placeholder="Cari dalam rak…" autocomplete="off" spellcheck="false" enterkeyhint="search">
+        <kbd aria-hidden="true">/</kbd>
+      </label>
+      <button type="button" class="btn btn-primary btn-add" id="add-btn">
+        <svg class="i" aria-hidden="true"><use href="#i-plus"/></svg><span class="btn-text">Tambah playlist</span>
+      </button>
+      <button type="button" class="icon-btn" id="menu-btn" popovertarget="menu" aria-label="Menu">
+        <svg class="i" aria-hidden="true"><use href="#i-more"/></svg>
+      </button>
+    </div>
+
+    <div class="layout">
+      <main id="main" class="main">
+        <section id="rack-view" aria-label="Rak aku">
+          <section class="filters" id="filters" aria-label="Tapis">
+            <div class="pills" id="pills"></div>
+            <div class="tabs-wrap" id="tabs-wrap">
+              <span class="tabs-label" aria-hidden="true">Tag</span>
+              <div class="tabs" id="tabs" role="group" aria-label="Tapis ikut tag"></div>
+            </div>
+          </section>
+
+          <div class="sample-note" id="sample-note" hidden>
+            <span class="stamp">Contoh</span>
+            <p id="sample-text"></p>
+            <div class="sample-actions">
+              <button type="button" class="btn btn-primary btn-sm" data-act="add">Tambah playlist aku</button>
+              <button type="button" class="btn btn-sm" data-act="remove-samples">Buang contoh</button>
+            </div>
+          </div>
+
+          <div class="results-head" id="results-head">
+            <p class="results-count" id="results-count" aria-live="polite"></p>
+            <label class="sort">
+              <span>Susun</span>
+              <span class="select">
+                <select id="sort">
+                  <option value="recent">Terbaru ditambah</option>
+                  <option value="played">Terakhir dimainkan</option>
+                  <option value="plays">Paling kerap dimainkan</option>
+                  <option value="az">Tajuk A–Z</option>
+                  <option value="no">No. katalog</option>
+                </select>
+                <svg class="i" aria-hidden="true"><use href="#i-down"/></svg>
+              </span>
+            </label>
+          </div>
+
+          <div class="grid" id="grid"></div>
+          <div class="empty" id="empty" hidden></div>
+        </section>
+
+        <section id="songs-view" class="songs" aria-label="Cari lagu" hidden>
+          <div class="target-bar" id="target-bar"></div>
+          <div class="song-results" id="song-results"></div>
+        </section>
+      </main>
+
+      <aside class="deck" id="deck" aria-label="Pemain" hidden>
+        <div class="deck-bar" id="deck-bar">
+          <span class="deck-disc" aria-hidden="true"><span class="disc-label" id="deck-disc-label"></span></span>
+          <div class="deck-bar-text">
+            <span class="eyebrow" id="deck-eyebrow">Sedang dimainkan</span>
+            <strong class="deck-bar-title" id="deck-bar-title"></strong>
+          </div>
+          <button type="button" class="icon-btn ghost bar-ctl" data-act="playpause" aria-label="Jeda" hidden>
+            <svg class="i i-fill" aria-hidden="true"><use href="#i-pause"/></svg>
+          </button>
+          <button type="button" class="icon-btn ghost bar-ctl" data-act="next" aria-label="Lagu seterusnya" hidden>
+            <svg class="i i-fill" aria-hidden="true"><use href="#i-next"/></svg>
+          </button>
+          <button type="button" class="icon-btn ghost deck-toggle" id="deck-toggle" data-act="toggle" aria-expanded="false" aria-label="Besarkan pemain">
+            <svg class="i" aria-hidden="true"><use href="#i-chev"/></svg>
+          </button>
+          <button type="button" class="icon-btn ghost" data-act="close" aria-label="Tutup pemain">
+            <svg class="i" aria-hidden="true"><use href="#i-x"/></svg>
+          </button>
+        </div>
+        <div class="deck-body" id="deck-body">
+          <div class="deck-player" id="deck-player"></div>
+          <div class="deck-controls" id="deck-controls" hidden>
+            <button type="button" class="icon-btn ghost" data-act="shuffle" aria-pressed="false" aria-label="Main rawak">
+              <svg class="i" aria-hidden="true"><use href="#i-shuffle"/></svg>
+            </button>
+            <button type="button" class="icon-btn ghost" data-act="prev" aria-label="Lagu sebelum">
+              <svg class="i i-fill" aria-hidden="true"><use href="#i-prev"/></svg>
+            </button>
+            <button type="button" class="icon-btn play-btn" data-act="playpause" aria-label="Jeda">
+              <svg class="i i-fill" aria-hidden="true"><use href="#i-pause"/></svg>
+            </button>
+            <button type="button" class="icon-btn ghost" data-act="next" aria-label="Lagu seterusnya">
+              <svg class="i i-fill" aria-hidden="true"><use href="#i-next"/></svg>
+            </button>
+            <button type="button" class="icon-btn ghost" data-act="repeat" aria-pressed="true" aria-label="Ulang playlist">
+              <svg class="i" aria-hidden="true"><use href="#i-repeat"/></svg>
+            </button>
+          </div>
+          <p class="player-tip" id="player-tip" hidden></p>
+          <div class="deck-info" id="deck-info"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <nav class="bottomnav" id="bottomnav" aria-label="Paparan">
+    <button type="button" class="viewtab" data-view="rack" aria-pressed="true"><svg class="i" aria-hidden="true"><use href="#i-rack"/></svg><span>Rak aku</span></button>
+    <button type="button" class="viewtab" data-view="songs" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg><span>Cari lagu</span></button>
+  </nav>
+
+  <div class="scrim" id="scrim" hidden></div>
+
+  <dialog class="editor" id="editor" aria-labelledby="editor-heading">
+    <form class="editor-form" id="editor-form" novalidate>
+      <header class="editor-head">
+        <h2 id="editor-heading">Tambah playlist</h2>
+        <button type="button" class="icon-btn ghost" data-close aria-label="Tutup">
+          <svg class="i" aria-hidden="true"><use href="#i-x"/></svg>
+        </button>
+      </header>
+
+      <div class="seg editor-mode" id="editor-mode" role="group" aria-label="Jenis playlist">
+        <button type="button" data-mode="link" aria-pressed="true"><svg class="i" aria-hidden="true"><use href="#i-clip"/></svg>Tampal link</button>
+        <button type="button" data-mode="own" aria-pressed="false"><svg class="i" aria-hidden="true"><use href="#i-list-plus"/></svg>Buat sendiri</button>
+      </div>
+
+      <div class="field" id="link-field">
+        <label for="f-url">Link playlist</label>
+        <div class="input-row">
+          <input id="f-url" name="url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://open.spotify.com/playlist/…">
+          <button type="button" class="btn" id="f-paste"><svg class="i" aria-hidden="true"><use href="#i-clip"/></svg>Tampal</button>
+        </div>
+        <p class="hint" id="f-url-hint" aria-live="polite"></p>
+      </div>
+
+      <div class="field" id="bulk-field" hidden>
+        <div class="bulk-head">
+          <span class="label" id="bulk-label">Link yang dijumpai</span>
+          <button type="button" class="link-btn" id="bulk-cancel">Tukar ke satu link</button>
+        </div>
+        <ul class="bulk-list" id="bulk-list" aria-labelledby="bulk-label"></ul>
+      </div>
+
+      <div class="single-fields" id="single-fields">
+        <div class="editor-grid">
+          <div class="cover-pick">
+            <div class="cover-preview" id="f-cover-preview"></div>
+            <div class="cover-actions">
+              <label class="btn btn-sm" for="f-cover-file"><svg class="i" aria-hidden="true"><use href="#i-image"/></svg>Gambar</label>
+              <button type="button" class="link-btn" id="f-cover-clear" hidden>Buang</button>
+            </div>
+            <input type="file" id="f-cover-file" accept="image/*" hidden>
+          </div>
+          <div class="field-stack">
+            <div class="field">
+              <label for="f-title" id="f-title-label">Tajuk</label>
+              <input id="f-title" name="title" maxlength="140" autocomplete="off">
+              <p class="hint" id="f-title-hint" aria-live="polite"></p>
+            </div>
+            <div class="field" id="cover-url-field">
+              <label for="f-cover">Link gambar cover <span class="opt">pilihan</span></label>
+              <input id="f-cover" name="cover" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Diisi automatik dari link">
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-notes">Nota <span class="opt">pilihan</span></label>
+          <textarea id="f-notes" name="notes" rows="2" maxlength="500" placeholder="Bila aku pasang playlist ni…"></textarea>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-tags">Tag <span class="opt">asing dengan koma</span></label>
+        <input id="f-tags" name="tags" autocomplete="off" placeholder="chill, gaming, jiwang">
+        <div class="tag-suggest" id="f-tag-suggest"></div>
+      </div>
+
+      <label class="check" id="fav-field"><input type="checkbox" id="f-fav"><span>Tanda sebagai kegemaran</span></label>
+
+      <footer class="editor-foot">
+        <button type="button" class="btn btn-danger" id="f-delete" hidden><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Padam</button>
+        <button type="button" class="link-btn" id="f-refresh" hidden><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg>Ambil semula tajuk &amp; cover</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Batal</button>
+        <button type="submit" class="btn btn-primary" id="f-save">Masukkan dalam rak</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="menu" id="menu" popover>
+    <button type="button" class="menu-item" data-menu="new-own"><svg class="i" aria-hidden="true"><use href="#i-list-plus"/></svg>Buat playlist sendiri</button>
+    <hr>
+    <button type="button" class="menu-item" data-menu="export"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Eksport backup (.json)</button>
+    <button type="button" class="menu-item" data-menu="import"><svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>Import backup</button>
+    <hr>
+    <p class="menu-label" id="theme-label">Tema</p>
+    <div class="seg" role="group" aria-labelledby="theme-label">
+      <button type="button" data-theme-set="auto">Auto</button>
+      <button type="button" data-theme-set="dark">Gelap</button>
+      <button type="button" data-theme-set="light">Cerah</button>
+    </div>
+    <div id="menu-samples" hidden>
+      <hr>
+      <button type="button" class="menu-item is-danger" data-menu="remove-samples"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Buang playlist contoh</button>
+    </div>
+    <p class="menu-foot" id="menu-foot"></p>
+  </div>
+
+  <div class="menu target-menu" id="target-menu" popover></div>
+
+  <div class="menu" id="track-menu" popover>
+    <button type="button" class="menu-item" data-track-act="play"><svg class="i i-fill" aria-hidden="true"><use href="#i-play"/></svg>Main lagu ni</button>
+    <button type="button" class="menu-item" data-track-act="up"><svg class="i" aria-hidden="true"><use href="#i-up"/></svg>Naik ke atas</button>
+    <button type="button" class="menu-item" data-track-act="down"><svg class="i" aria-hidden="true"><use href="#i-arrow-down"/></svg>Turun ke bawah</button>
+    <a class="menu-item" data-track-act="open" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer"><svg class="i" aria-hidden="true"><use href="#i-ext"/></svg>Buka di YouTube</a>
+    <hr>
+    <button type="button" class="menu-item is-danger" data-track-act="remove"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Buang dari playlist</button>
+  </div>
+
+  <input type="file" id="import-file" accept="application/json,.json" hidden>
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+</body>
+</html>
