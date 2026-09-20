@@ -4,6 +4,10 @@ data/
 # Rahsia, contoh YOUTUBE_API_KEY
 .env
 .env.*
+.dev.vars
+
+# Fail sementara Cloudflare Wrangler
+.wrangler/
 
 # Tetapan tempatan Claude Code
 .claude/

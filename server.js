@@ -1,11 +1,12 @@
-// DYNOZ PLAYLIST — server kecil tanpa sebarang package tambahan.
+// DYNOZ PLAYLIST — server kecil tanpa sebarang package tambahan (versi dalam komputer).
 //   * hidang folder public/ (webapp)
 //   * simpan playlist dalam data/playlists.json
-//   * ambil tajuk & cover dari link Spotify / YouTube / SoundCloud / Apple Music / Deezer ...
-//   * cari lagu di YouTube untuk playlist buatan sendiri (lihat youtube-search.js)
+//   * API (tajuk & cover, cari lagu, log masuk) dikongsi dengan versi online — lihat lib/api.js
 //
 // Jalan:  node server.js [--open] [--lan]      (port lalai 7070, tukar dengan PORT=xxxx)
-// Pilihan: YOUTUBE_API_KEY=xxxx untuk guna YouTube Data API rasmi bagi carian lagu.
+// Pilihan:
+//   YOUTUBE_API_KEY=xxxx   guna YouTube Data API rasmi untuk carian lagu
+//   APP_PASSWORD=xxxx      kunci app dengan kata laluan (berguna untuk mod --lan)
 
 import http from 'node:http';
 import os from 'node:os';
@@ -13,8 +14,8 @@ import path from 'node:path';
 import { exec } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { copyFile, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { parseLink } from './public/js/platforms.js';
-import { searchMode, searchSongs } from './youtube-search.js';
+import { handleApi } from './lib/api.js';
+import { configureSearch, searchMode } from './lib/youtube-search.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -27,10 +28,12 @@ const args = new Set(process.argv.slice(2));
 const PORT = Number(process.env.PORT) || 7070;
 const LAN = args.has('--lan');
 const OPEN = args.has('--open');
+const PASSWORD = process.env.APP_PASSWORD?.trim() || '';
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36';
 const MAX_BODY = 30 * 1024 * 1024;
 const BACKUP_EVERY = 10 * 60 * 1000;
+
+configureSearch({ apiKey: process.env.YOUTUBE_API_KEY, region: process.env.DYNOZ_REGION });
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -52,19 +55,6 @@ const TYPES = {
 /* Pembantu HTTP                                                       */
 /* ------------------------------------------------------------------ */
 
-function httpError(status, message) {
-  return Object.assign(new Error(message), { status, expose: true });
-}
-
-function sendJSON(res, status, body) {
-  res.writeHead(status, {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store',
-    'x-content-type-options': 'nosniff',
-  });
-  res.end(JSON.stringify(body));
-}
-
 function sendText(res, status, text) {
   res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8' });
   res.end(text);
@@ -77,7 +67,7 @@ function readBody(req, limit) {
     req.on('data', (chunk) => {
       size += chunk.length;
       if (size > limit) {
-        reject(httpError(413, 'Data terlalu besar'));
+        reject(Object.assign(new Error('Data terlalu besar'), { status: 413 }));
         req.destroy();
       } else chunks.push(chunk);
     });
@@ -104,17 +94,6 @@ function hostAllowed(hostHeader) {
   return name === me || name === `${me}.local` || lanAddresses().includes(name);
 }
 
-// Tulisan data mesti datang dari app ni sendiri, bukan laman web lain.
-function checkOrigin(req) {
-  const origin = req.headers.origin;
-  if (!origin) return;
-  let host = '';
-  try {
-    host = new URL(origin).host;
-  } catch {}
-  if (host !== req.headers.host) throw httpError(403, 'Permintaan dari laman lain tak dibenarkan');
-}
-
 /* ------------------------------------------------------------------ */
 /* Data playlist (fail JSON)                                           */
 /* ------------------------------------------------------------------ */
@@ -128,20 +107,9 @@ async function readData() {
     try {
       return JSON.parse(await readFile(BACKUP_FILE, 'utf8'));
     } catch {
-      throw httpError(500, 'Fail data/playlists.json rosak dan tiada backup yang elok. Semak fail tu.');
+      throw Object.assign(new Error('Fail data/playlists.json rosak dan tiada backup yang elok. Semak fail tu.'), { status: 500, expose: true });
     }
   }
-}
-
-function validate(data) {
-  if (!data || typeof data !== 'object' || !Array.isArray(data.playlists)) return 'Format data tak betul';
-  if (data.playlists.length > 10000) return 'Terlalu banyak playlist';
-  for (const p of data.playlists) {
-    if (!p || typeof p.id !== 'string' || typeof p.title !== 'string' || typeof p.url !== 'string') {
-      return 'Ada playlist yang tak lengkap (perlu id, title, url)';
-    }
-  }
-  return null;
 }
 
 // OneDrive kadang-kadang kunci fail sekejap masa sync — cuba semula beberapa kali.
@@ -159,11 +127,6 @@ async function retry(fn, tries = 6) {
 let lastBackupAt = 0;
 let writeChain = Promise.resolve();
 let currentRev = null; // nombor versi data; naik setiap kali disimpan
-
-async function getRev() {
-  if (currentRev === null) currentRev = Number((await readData())?.rev) || 0;
-  return currentRev;
-}
 
 async function writeData(json) {
   await mkdir(DATA_DIR, { recursive: true });
@@ -184,283 +147,79 @@ function serialized(fn) {
   return run;
 }
 
-// Simpan hanya kalau tab tu nampak versi terkini. Kalau tak, balas "konflik"
-// dan tab tu akan gabungkan perubahannya dengan data terbaru dulu.
-function saveIfCurrent(baseRev, data) {
-  return serialized(async () => {
-    const rev = await getRev();
-    if (Number(baseRev) !== rev) return { conflict: true, rev };
-    const next = { ...data, rev: rev + 1 };
-    await writeData(`${JSON.stringify(next, null, 2)}\n`);
-    currentRev = next.rev;
-    return { conflict: false, rev: next.rev };
-  });
-}
+// Had cubaan log masuk (dalam memori): 10 kali salah dalam 15 minit = tunggu.
+const LOGIN_WINDOW = 15 * 60 * 1000;
+const loginFails = new Map();
 
-/* ------------------------------------------------------------------ */
-/* Ambil info playlist (tajuk, cover, pemilik)                          */
-/* ------------------------------------------------------------------ */
+const fileStorage = {
+  label: DATA_LABEL,
+  online: false,
 
-const metaCache = new Map();
+  async get() {
+    const data = await readData();
+    const rev = Number(data?.rev) || 0;
+    currentRev ??= rev;
+    if (data) delete data.rev;
+    return { rev, data };
+  },
 
-async function fetchJSON(url) {
-  const res = await fetch(url, {
-    headers: { 'user-agent': UA, accept: 'application/json' },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
+  // Simpan hanya kalau tab tu nampak versi terkini. Kalau tak, balas "konflik"
+  // dan tab tu akan gabungkan perubahannya dengan data terbaru dulu.
+  async saveIfRev(baseRev, data) {
+    const result = await serialized(async () => {
+      if (currentRev === null) currentRev = Number((await readData())?.rev) || 0;
+      if (baseRev !== currentRev) return { conflict: true };
+      const next = { ...data, rev: currentRev + 1 };
+      await writeData(`${JSON.stringify(next, null, 2)}\n`);
+      currentRev = next.rev;
+      return { ok: true, rev: next.rev };
+    });
+    return result.conflict ? { conflict: true, ...(await this.get()) } : result;
+  },
 
-async function readLimited(res, limit) {
-  if (!res.body) return '';
-  const reader = res.body.getReader();
-  const chunks = [];
-  let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    size += value.length;
-    if (size >= limit) {
-      reader.cancel().catch(() => {});
-      break;
-    }
-  }
-  return new TextDecoder().decode(Buffer.concat(chunks));
-}
-
-// Jangan biar server ni dipakai untuk buka alamat dalam rangkaian rumah.
-function assertPublic(url) {
-  const h = new URL(url).hostname.replace(/^\[|\]$/g, '').toLowerCase();
-  const isPrivate = h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') ||
-    /^(?:127\.|10\.|0\.|169\.254\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(h) ||
-    h === '::1' || /^f[cd]|^fe80/.test(h);
-  if (isPrivate) throw httpError(400, 'Link tu menghala ke rangkaian dalaman');
-}
-
-async function fetchPage(url) {
-  assertPublic(url);
-  const res = await fetch(url, {
-    headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml', 'accept-language': 'en-US,en;q=0.8,ms;q=0.6' },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(9000),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return { url: res.url, html: await readLimited(res, 2_000_000) };
-}
-
-function decodeEntities(s) {
-  const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
-  return String(s ?? '').replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (m, code) => {
-    if (code[0] === '#') {
-      const n = code[1].toLowerCase() === 'x' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
-      return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
-    }
-    return named[code.toLowerCase()] ?? m;
-  });
-}
-
-function metaTag(html, key) {
-  const tag = html.match(new RegExp(`<meta[^>]+(?:property|name)\\s*=\\s*["']${key}["'][^>]*>`, 'i'))?.[0];
-  if (!tag) return '';
-  const m = tag.match(/content\s*=\s*(?:"([^"]*)"|'([^']*)')/i);
-  return m ? decodeEntities(m[1] ?? m[2]).trim() : '';
-}
-
-const tidy = (s) => String(s ?? '').replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim();
-
-function biggerSpotifyCover(url) {
-  return String(url ?? '')
-    .replace('ab67706f00000002', 'ab67706f00000003')
-    .replace('ab67616d00001e02', 'ab67616d0000b273')
-    .replace('mosaic.scdn.co/300/', 'mosaic.scdn.co/640/');
-}
-
-async function spotifyMeta(info) {
-  const j = await fetchJSON(`https://open.spotify.com/oembed?url=${encodeURIComponent(info.url)}`);
-  return { title: j.title, cover: biggerSpotifyCover(j.thumbnail_url), author: '' };
-}
-
-async function youtubeMeta(info) {
-  const target = info.kind === 'video' ? `https://www.youtube.com/watch?v=${info.id}`
-    : info.kind === 'mix' ? info.url.replace('music.youtube.com', 'www.youtube.com')
-    : `https://www.youtube.com/playlist?list=${info.id}`;
-  const j = await fetchJSON(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(target)}`);
-  return { title: j.title, cover: j.thumbnail_url, author: j.author_name };
-}
-
-async function soundcloudMeta(info) {
-  const j = await fetchJSON(`https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(info.url)}`);
-  let title = tidy(j.title);
-  const author = tidy(j.author_name);
-  if (author && title.endsWith(` by ${author}`)) title = title.slice(0, -(` by ${author}`.length));
-  return { title, cover: j.thumbnail_url, author };
-}
-
-async function deezerMeta(info) {
-  const j = await fetchJSON(`https://api.deezer.com/${info.kind}/${info.id}`);
-  if (j.error) throw new Error(j.error.message || 'Deezer error');
-  return {
-    title: j.title || j.name,
-    cover: j.picture_xl || j.cover_xl || j.album?.cover_xl || '',
-    author: j.creator?.name || j.artist?.name || '',
-  };
-}
-
-async function pageMeta(info) {
-  const { html } = await fetchPage(info.url);
-  let title = metaTag(html, 'og:title') || metaTag(html, 'twitter:title') ||
-    decodeEntities(html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? '');
-  let cover = metaTag(html, 'og:image') || metaTag(html, 'twitter:image');
-  title = tidy(title);
-
-  if (info.platform === 'apple') {
-    title = title
-      .replace(/\s+on Apple Music$/i, '')
-      .replace(/\s+[-–—]\s+(?:Playlist|Album|Single|EP|Song|Station)\b.*$/i, '')
-      .replace(/\s+[-–—]\s+Apple Music$/i, '');
-    // Tukar gambar kad sosial 1200x630 ke kulit segi empat 600x600
-    if (cover) cover = cover.split('?')[0].replace(/\/\d+x\d+[^/]*$/, '/600x600cc.jpg');
-  }
-  if (info.platform === 'tidal') title = title.replace(/\s+(?:on|\|)\s+TIDAL$/i, '');
-  if (info.platform === 'joox') title = title.replace(/\s*[-|]\s*JOOX.*$/i, '');
-  if (info.platform === 'amazon') title = title.replace(/\s+on Amazon Music.*$/i, '');
-  if (title === 'YouTube' || title === 'Spotify') title = '';
-
-  if (cover) {
-    try {
-      cover = new URL(cover, info.url).href;
-    } catch {
-      cover = '';
-    }
-  }
-  return { title, cover, author: '' };
-}
-
-// Buka link pendek (spotify.link, on.soundcloud.com, ...) untuk dapat link penuh.
-async function resolveShort(info) {
-  assertPublic(info.url);
-  const res = await fetch(info.url, {
-    headers: { 'user-agent': UA, accept: 'text/html' },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(9000),
-  });
-  const direct = parseLink(res.url);
-  if (direct && !direct.short && direct.kind !== 'link') {
-    res.body?.cancel().catch(() => {});
-    return direct;
-  }
-  const html = (await readLimited(res, 1_500_000)).replace(/\\\//g, '/');
-  const candidates = [
-    metaTag(html, 'og:url'),
-    ...(html.match(/https?:\/\/(?:open\.spotify\.com|(?:www\.)?deezer\.com|soundcloud\.com|music\.apple\.com|(?:www\.|music\.)?youtube\.com)\/[^\s"'<>\\]+/g) ?? []),
-  ];
-  for (const c of candidates) {
-    const p = parseLink(decodeEntities(c));
-    if (p && !p.short && p.kind !== 'link') return p;
-  }
-  return info;
-}
-
-async function getMeta(rawUrl) {
-  let info = parseLink(rawUrl);
-  if (!info) throw httpError(400, 'Tu bukan link yang sah');
-  if (info.short) info = await resolveShort(info).catch(() => info);
-
-  const cached = metaCache.get(info.url);
-  if (cached && Date.now() - cached.at < 10 * 60 * 1000) return cached.value;
-
-  const fetchers = {
-    spotify: spotifyMeta,
-    youtube: youtubeMeta,
-    ytmusic: youtubeMeta,
-    soundcloud: soundcloudMeta,
-    deezer: deezerMeta,
-  };
-  let meta = {};
-  const primary = fetchers[info.platform];
-  if (primary && info.kind !== 'link') {
-    try {
-      meta = await primary(info);
-    } catch {
-      meta = await pageMeta(info).catch(() => ({}));
-    }
-  } else if (!info.short) {
-    meta = await pageMeta(info).catch(() => ({}));
-  }
-
-  const value = {
-    ok: true,
-    url: info.url,
-    platform: info.platform,
-    kind: info.kind,
-    title: tidy(meta.title),
-    cover: meta.cover || '',
-    author: tidy(meta.author),
-  };
-  if (value.title) metaCache.set(info.url, { at: Date.now(), value });
-  return value;
-}
+  loginBlocked(ip) {
+    const f = loginFails.get(ip);
+    if (!f || Date.now() - f.first > LOGIN_WINDOW || f.count < 10) return 0;
+    return Math.ceil((f.first + LOGIN_WINDOW - Date.now()) / 1000);
+  },
+  loginFailed(ip) {
+    const f = loginFails.get(ip);
+    if (!f || Date.now() - f.first > LOGIN_WINDOW) loginFails.set(ip, { count: 1, first: Date.now() });
+    else f.count += 1;
+  },
+  loginOk(ip) {
+    loginFails.delete(ip);
+  },
+};
 
 /* ------------------------------------------------------------------ */
 /* Laluan                                                              */
 /* ------------------------------------------------------------------ */
 
-async function handleApi(req, res, url) {
-  const route = url.pathname;
+const HOP_HEADERS = new Set(['host', 'connection', 'keep-alive', 'transfer-encoding', 'upgrade', 'content-length']);
 
-  if (route === '/api/health') return sendJSON(res, 200, { ok: true, app: 'dynoz-playlist' });
-
-  if (route === '/api/playlists') {
-    if (req.method === 'GET') {
-      const data = await readData();
-      const rev = Number(data?.rev) || 0;
-      currentRev ??= rev;
-      return sendJSON(res, 200, { ok: true, file: DATA_LABEL, rev, data });
-    }
-    if (req.method === 'PUT') {
-      checkOrigin(req);
-      if (!String(req.headers['content-type'] ?? '').includes('application/json')) throw httpError(415, 'Perlu JSON');
-      let body;
-      try {
-        body = JSON.parse(await readBody(req, MAX_BODY));
-      } catch (err) {
-        if (err.status) throw err;
-        throw httpError(400, 'JSON rosak');
-      }
-      const problem = validate(body?.data);
-      if (problem) throw httpError(400, problem);
-      const result = await saveIfCurrent(body.baseRev, body.data);
-      if (result.conflict) {
-        const latest = await readData();
-        return sendJSON(res, 409, { ok: false, conflict: true, rev: Number(latest?.rev) || 0, data: latest });
-      }
-      return sendJSON(res, 200, { ok: true, rev: result.rev, savedAt: new Date().toISOString() });
-    }
-    throw httpError(405, 'Method tak dibenarkan');
+// Tukar permintaan Node ke Request standard, hantar ke lib/api.js, tulis balik Response.
+async function serveApi(req, res) {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value !== undefined && !HOP_HEADERS.has(key)) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
   }
-
-  if (route === '/api/search' && req.method === 'GET') {
-    try {
-      return sendJSON(res, 200, { ok: true, ...(await searchSongs(url.searchParams.get('q'))) });
-    } catch (err) {
-      console.warn(`  ! Carian lagu gagal: ${err.message}`);
-      return sendJSON(res, 200, { ok: false, error: 'Carian YouTube tak berjaya sekarang. Cuba lagi sekejap lagi.' });
-    }
-  }
-
-  if (route === '/api/meta' && req.method === 'GET') {
-    const target = url.searchParams.get('url');
-    if (!target) throw httpError(400, 'Perlu ?url=');
-    try {
-      return sendJSON(res, 200, await getMeta(target));
-    } catch (err) {
-      return sendJSON(res, 200, { ok: false, error: err.expose ? err.message : 'Tak dapat ambil info dari link tu' });
-    }
-  }
-
-  throw httpError(404, 'API tak wujud');
+  const body = req.method === 'GET' || req.method === 'HEAD' ? undefined : await readBody(req, MAX_BODY);
+  const response = await handleApi(new Request(url, { method: req.method, headers, body }), {
+    storage: fileStorage,
+    password: PASSWORD,
+    passwordRequired: false,
+    ip: req.socket.remoteAddress,
+  });
+  const out = {};
+  response.headers.forEach((value, key) => {
+    if (key !== 'set-cookie') out[key] = value;
+  });
+  const cookies = response.headers.getSetCookie?.() ?? [];
+  if (cookies.length) out['set-cookie'] = cookies;
+  res.writeHead(response.status, out);
+  res.end(Buffer.from(await response.arrayBuffer()));
 }
 
 async function serveStatic(req, res, pathname) {
@@ -494,15 +253,17 @@ async function serveStatic(req, res, pathname) {
 const server = http.createServer(async (req, res) => {
   try {
     if (!hostAllowed(req.headers.host)) return sendText(res, 403, 'Host tak dibenarkan');
-    const url = new URL(req.url ?? '/', 'http://localhost');
-    if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
+    const { pathname } = new URL(req.url ?? '/', 'http://localhost');
+    if (pathname.startsWith('/api/')) return await serveApi(req, res);
     if (req.method !== 'GET' && req.method !== 'HEAD') return sendText(res, 405, 'Method tak dibenarkan');
-    return await serveStatic(req, res, url.pathname);
+    return await serveStatic(req, res, pathname);
   } catch (err) {
     const status = err.status || 500;
     if (status >= 500) console.error(err);
-    if (!res.headersSent) sendJSON(res, status, { ok: false, error: err.expose ? err.message : 'Ralat server' });
-    else res.end();
+    if (!res.headersSent) {
+      res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: status >= 500 ? 'Ralat server' : err.message }));
+    } else res.end();
   }
 });
 
@@ -534,7 +295,9 @@ server.listen(PORT, LAN ? '0.0.0.0' : '127.0.0.1', () => {
   console.log(`  Buka   : ${local}`);
   if (LAN) {
     for (const ip of lanAddresses()) console.log(`  Phone  : http://${ip}:${PORT}   (WiFi yang sama)`);
-    console.log('  Nota   : sesiapa dalam WiFi yang sama boleh buka & ubah playlist.');
+    console.log(PASSWORD
+      ? '  Nota   : app dikunci dengan APP_PASSWORD.'
+      : '  Nota   : sesiapa dalam WiFi yang sama boleh buka & ubah playlist (set APP_PASSWORD untuk kunci).');
   }
   console.log(`  Data   : ${DATA_LABEL}`);
   console.log(`  Carian : YouTube ${searchMode() === 'api' ? '(API rasmi)' : '(tanpa API key)'}`);

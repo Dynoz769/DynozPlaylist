@@ -77,6 +77,44 @@ npm run lan
 
 Terminal akan tunjuk alamat macam `http://192.168.1.5:7070`. Buka alamat tu kat phone. Hati-hati: sesiapa dalam WiFi yang sama boleh buka dan ubah playlist bila mod ni hidup.
 
+## Online (buka dari mana-mana)
+
+Versi online guna **Cloudflare Workers** (percuma, tak perlu kad kredit) dan simpan data dalam **Cloudflare D1**. Kod yang sama jalan dalam komputer dan online — cuma tempat simpan data yang berbeza.
+
+**Sekali je, masa nak setup:**
+
+1. Daftar akaun percuma kat [dash.cloudflare.com](https://dash.cloudflare.com/sign-up).
+2. Dalam folder projek, benarkan komputer ni guna akaun tu:
+   ```
+   npx wrangler login
+   ```
+3. Buat pangkalan data, lepas tu salin `database_id` yang keluar masuk dalam `wrangler.toml`:
+   ```
+   npx wrangler d1 create dynoz-playlist
+   ```
+4. Set kata laluan app (app online berkunci — tanpa ni, API tak jalan langsung):
+   ```
+   npx wrangler secret put APP_PASSWORD
+   ```
+5. Set YouTube API key supaya carian lagu jalan dari server online:
+   ```
+   npx wrangler secret put YOUTUBE_API_KEY
+   ```
+6. Hantar app ke Cloudflare:
+   ```
+   npm run deploy
+   ```
+
+Alamat app akan keluar selepas deploy, contoh `https://dynoz-playlist.<nama-kau>.workers.dev`. Buka kat phone, masukkan kata laluan sekali — lepas tu dia ingat sampai 90 hari.
+
+**Lepas ubah apa-apa kemudian:** `npm run deploy` je.
+
+Nota:
+- Data online dan data dalam komputer **berasingan**. Nak pindah: *Eksport backup* dari satu, *Import backup* kat satu lagi.
+- Nak tukar kata laluan: `npx wrangler secret put APP_PASSWORD` sekali lagi. Semua peranti kena log masuk semula.
+- Nak tengok ralat server online: `npm run online:log`.
+- Nak cuba versi online kat komputer dulu: `npm run online` (data guna salinan tempatan, bukan data sebenar).
+
 ## Tukar port
 
 Kalau port 7070 dah dipakai program lain (cmd):
@@ -88,8 +126,13 @@ set PORT=7171 && npm start
 ## Susunan fail
 
 ```
-server.js                server kecil: hidang webapp, simpan data, ambil info playlist
-youtube-search.js        carian lagu YouTube (dengan atau tanpa API key)
+server.js                server dalam komputer: hidang webapp + simpan data ke fail
+worker.js                versi online (Cloudflare Workers) + simpan data ke D1
+wrangler.toml            tetapan deploy Cloudflare
+lib/api.js               API yang dikongsi server.js dan worker.js
+lib/meta.js              ambil tajuk & cover dari link
+lib/youtube-search.js    carian lagu YouTube (dengan atau tanpa API key)
+lib/auth.js              kata laluan & sesi log masuk
 START.bat                double-click untuk mula
 public/index.html        struktur halaman
 public/css/styles.css    rupa (warna, taip, susun atur)

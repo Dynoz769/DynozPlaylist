@@ -7,9 +7,12 @@
   "scripts": {
     "start": "node server.js --open",
     "serve": "node server.js",
-    "lan": "node server.js --lan"
+    "lan": "node server.js --lan",
+    "deploy": "npx --yes wrangler deploy",
+    "online": "npx --yes wrangler dev",
+    "online:log": "npx --yes wrangler tail"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }

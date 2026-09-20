@@ -66,14 +66,20 @@ export async function openStore() {
   // Hosting statik biasanya balas HTML/404 untuk /api — maksudnya tiada server kita.
   if (!(res.headers.get('content-type') ?? '').includes('application/json')) return new BrowserStore();
   const body = await res.json().catch(() => null);
+  // App online berkunci: perlu log masuk (atau kata laluan belum diset)
+  if (body?.auth === 'login' || body?.auth === 'setup') {
+    throw Object.assign(new Error(body.error ?? 'Perlu log masuk.'), { auth: body.auth });
+  }
   if (!res.ok || !body?.ok) throw new Error(body?.error ?? `Server balas ralat ${res.status}`);
-  return new FileStore(body.data, body.rev ?? 0, body.file);
+  return new FileStore(body);
 }
 
+// Data disimpan di server: fail data/playlists.json (dalam komputer) atau Cloudflare D1 (online).
 class FileStore {
   kind = 'file';
   onStatus = () => {};
   onRemote = null; // (data) => data baru app; dipanggil bila data berubah dari tab lain
+  onAuthLost = null; // (retry) => void; sesi log masuk tamat
   #data;
   #rev;
   #base;
@@ -83,11 +89,13 @@ class FileStore {
   #saving = false;
   #again = false;
 
-  constructor(data, rev, file) {
+  constructor({ data, rev, where, online, locked }) {
     this.#data = data;
-    this.#rev = rev;
+    this.#rev = rev ?? 0;
     this.#base = clone(data) ?? { playlists: [] };
-    this.file = file ?? 'data/playlists.json';
+    this.where = where ?? 'data/playlists.json';
+    this.online = Boolean(online);
+    this.locked = Boolean(locked);
     const flushNow = () => this.flush({ keepalive: true });
     addEventListener('pagehide', flushNow);
     addEventListener('focus', () => this.refresh());
@@ -126,6 +134,12 @@ class FileStore {
         body,
         keepalive: keepalive && body.length < 60_000,
       });
+      if (res.status === 401) {
+        // Sesi tamat — simpan semula lepas log masuk
+        this.#pending ??= data;
+        this.onAuthLost?.(() => this.flush());
+        return;
+      }
       const reply = await res.json().catch(() => null);
       if (res.status === 409 && reply?.conflict) {
         // Ada tab lain simpan dulu — gabung, kemudian simpan semula.
@@ -137,14 +151,15 @@ class FileStore {
         this.#again = true;
         return;
       }
-      if (!res.ok || !reply?.ok) throw new Error(reply?.error ?? `HTTP ${res.status}`);
+      if (!res.ok || !reply?.ok) throw Object.assign(new Error(reply?.error ?? `HTTP ${res.status}`), { status: res.status });
       this.#rev = reply.rev;
       this.#base = JSON.parse(body).data;
       this.onStatus('saved');
     } catch (err) {
       this.#pending ??= data; // cuba lagi nanti, kecuali dah ada perubahan lebih baru
       this.onStatus('error', err);
-      this.#retryTimer = setTimeout(() => this.flush(), 5000);
+      // Ralat pada data (contoh: terlalu besar) takkan hilang kalau cuba semula — tunggu perubahan seterusnya
+      if (!(err.status >= 400 && err.status < 500)) this.#retryTimer = setTimeout(() => this.flush(), 5000);
     } finally {
       this.#saving = false;
       if (this.#again) {
@@ -159,7 +174,12 @@ class FileStore {
     if (this.#pending || this.#saving) return;
     let reply;
     try {
-      reply = await (await fetch('api/playlists', { cache: 'no-store' })).json();
+      const res = await fetch('api/playlists', { cache: 'no-store' });
+      if (res.status === 401) {
+        this.onAuthLost?.(() => this.refresh());
+        return;
+      }
+      reply = await res.json();
     } catch {
       return;
     }
@@ -172,7 +192,9 @@ class FileStore {
 
 class BrowserStore {
   kind = 'browser';
-  file = null;
+  where = null;
+  online = false;
+  locked = false;
   onStatus = () => {};
   onRemote = null;
 

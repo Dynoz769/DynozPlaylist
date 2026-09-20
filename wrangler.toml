@@ -1,0 +1,21 @@
+# Tetapan Cloudflare Workers untuk versi online DYNOZ PLAYLIST.
+# Deploy: npm run deploy   (lihat README.md bahagian "Online")
+
+name = "dynoz-playlist"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# Fail webapp dihidang terus dari folder public/
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[vars]
+DYNOZ_REGION = "MY"
+
+# Pangkalan data playlist.
+# GANTI database_id dengan id sebenar yang keluar dari "npx wrangler d1 create dynoz-playlist".
+[[d1_databases]]
+binding = "DB"
+database_name = "dynoz-playlist"
+database_id = "11111111-1111-1111-1111-111111111111"

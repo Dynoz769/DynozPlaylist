@@ -53,6 +53,7 @@
     <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
     <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
     <symbol id="i-list-plus" viewBox="0 0 24 24"><path d="M4 6h12M4 12h12M4 18h7M18 14v7M14.5 17.5h7"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3M16 16l4-4-4-4M20 12H10"/></symbol>
   </svg>
 
   <div class="file-warning" id="file-warning">
@@ -284,8 +285,27 @@
       <hr>
       <button type="button" class="menu-item is-danger" data-menu="remove-samples"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Buang playlist contoh</button>
     </div>
+    <div id="menu-logout" hidden>
+      <hr>
+      <button type="button" class="menu-item" data-menu="logout"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>Log keluar</button>
+    </div>
     <p class="menu-foot" id="menu-foot"></p>
   </div>
+
+  <dialog class="login" id="login" aria-labelledby="login-heading">
+    <form class="login-form" id="login-form" novalidate>
+      <span class="login-disc" aria-hidden="true"></span>
+      <h2 id="login-heading">Rak ni berkunci.</h2>
+      <p class="login-note" id="login-note"></p>
+      <input type="text" name="username" value="dynoz" autocomplete="username" hidden>
+      <div class="field">
+        <label for="login-password">Kata laluan</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" enterkeyhint="go">
+      </div>
+      <p class="hint" id="login-error" data-tone="warn" aria-live="polite"></p>
+      <button type="submit" class="btn btn-primary" id="login-submit">Masuk</button>
+    </form>
+  </dialog>
 
   <div class="menu target-menu" id="target-menu" popover></div>
 

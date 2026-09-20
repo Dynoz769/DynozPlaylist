@@ -213,19 +213,88 @@ init();
 async function init() {
   applyTheme(getTheme());
   loadPrefs();
-  try {
-    state.store = await openStore();
-  } catch (err) {
-    showFatal(err.message);
-    return;
+  for (;;) {
+    try {
+      state.store = await openStore();
+      break;
+    } catch (err) {
+      if (err.auth === 'login') {
+        await askLogin();
+        continue;
+      }
+      showFatal(err.message, err.auth === 'setup' ? 'App online belum siap' : undefined);
+      return;
+    }
   }
   const raw = state.store.load();
   state.data = normalize(raw ?? sampleData());
   if (raw == null) state.store.save(state.data);
   state.store.onStatus = onSaveStatus;
   state.store.onRemote = applyRemote;
+  state.store.onAuthLost = (retry) => askLogin({ expired: true }).then(retry);
   bindEvents();
   renderAll();
+}
+
+/* ---------- Log masuk (app online berkunci dengan kata laluan) ---------- */
+
+let loginWaiters = null;
+
+function askLogin({ expired = false } = {}) {
+  const dialog = $('#login');
+  if (!loginWaiters) {
+    loginWaiters = [];
+    $('#login-note').textContent = expired
+      ? 'Sesi dah tamat. Masukkan kata laluan sekali lagi.'
+      : 'Masukkan kata laluan untuk buka rak playlist ni.';
+    $('#login-error').textContent = '';
+    if (!dialog.open) dialog.showModal();
+    $('#login-password').focus();
+  }
+  return new Promise((resolve) => loginWaiters.push(resolve));
+}
+
+$('#login').addEventListener('cancel', (e) => e.preventDefault()); // Esc tak boleh langkau log masuk
+$('#login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = $('#login-password');
+  const button = $('#login-submit');
+  const error = $('#login-error');
+  button.disabled = true;
+  error.textContent = '';
+  try {
+    const res = await fetch('api/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ password: input.value }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) throw new Error(body.error || 'Tak dapat log masuk. Cuba lagi.');
+    input.value = '';
+    $('#login').close();
+    const waiters = loginWaiters ?? [];
+    loginWaiters = null;
+    for (const done of waiters) done();
+  } catch (err) {
+    error.textContent = err instanceof TypeError ? 'Tak dapat sambung ke server. Semak internet.' : err.message;
+    input.select();
+  } finally {
+    button.disabled = false;
+  }
+});
+
+// fetch ke API; kalau sesi tamat, minta log masuk dan cuba sekali lagi.
+async function api(path, options) {
+  const res = await fetch(path, options);
+  if (res.status !== 401 || !state.store?.locked) return res;
+  await askLogin({ expired: true });
+  return fetch(path, options);
+}
+
+async function logout() {
+  await state.store.flush?.();
+  await fetch('api/logout', { method: 'POST' }).catch(() => {});
+  location.reload();
 }
 
 // Data berubah dari tab / peranti lain (atau digabung selepas konflik).
@@ -241,19 +310,19 @@ function applyRemote(data) {
   return state.data;
 }
 
-function showFatal(message) {
-  $('#main').innerHTML = `<div class="empty"><div class="empty-disc"></div><h2>Tak dapat buka data</h2><p>${esc(message)}</p></div>`;
+function showFatal(message, title = 'Tak dapat buka data') {
+  $('#main').innerHTML = `<div class="empty"><div class="empty-disc"></div><h2>${esc(title)}</h2><p>${esc(message)}</p></div>`;
 }
 
 let saveErrorToast = null;
-function onSaveStatus(status) {
+function onSaveStatus(status, err) {
   if (status === 'error' && !saveErrorToast) {
-    saveErrorToast = toast(
-      state.store.kind === 'file'
-        ? 'Tak dapat simpan ke fail. Server dah tutup? Jalankan START.bat semula — app akan cuba simpan lagi.'
-        : 'Browser ni tak benarkan simpan data. Eksport backup dari menu supaya tak hilang.',
-      { tone: 'error', timeout: 0 },
-    );
+    const s = state.store;
+    const message = err?.status >= 400 && err.status < 500 && err.message ? err.message
+      : s.kind !== 'file' ? 'Browser ni tak benarkan simpan data. Eksport backup dari menu supaya tak hilang.'
+      : s.online ? 'Tak dapat simpan — semak sambungan internet. App akan cuba simpan lagi.'
+      : 'Tak dapat simpan ke fail. Server dah tutup? Jalankan START.bat semula — app akan cuba simpan lagi.';
+    saveErrorToast = toast(message, { tone: 'error', timeout: 0 });
   } else if (status === 'saved' && saveErrorToast) {
     saveErrorToast();
     saveErrorToast = null;
@@ -477,11 +546,15 @@ function renderGrid() {
 }
 
 function renderMenuInfo() {
+  const s = state.store;
   const samples = state.data.playlists.filter((p) => p.sample).length;
   $('#menu-samples').hidden = !samples;
-  $('#menu-foot').innerHTML = state.store.kind === 'file'
-    ? `Data disimpan dalam fail <code>${esc(state.store.file)}</code> dalam folder projek.`
-    : 'Data disimpan dalam browser ni je. Eksport backup selalu supaya tak hilang.';
+  $('#menu-logout').hidden = !s.locked;
+  $('#menu-foot').innerHTML = s.kind !== 'file'
+    ? 'Data disimpan dalam browser ni je. Eksport backup selalu supaya tak hilang.'
+    : s.online
+      ? `Data disimpan online (${esc(s.where)}) — sama kat semua peranti.`
+      : `Data disimpan dalam fail <code>${esc(s.where)}</code> dalam folder projek.`;
 }
 
 /* ================================================================== */
@@ -1394,7 +1467,7 @@ async function runSongSearch(raw, { force = false } = {}) {
   s.status = 'loading';
   renderSongs();
   try {
-    const res = await fetch(`api/search?q=${encodeURIComponent(q)}`);
+    const res = await api(`api/search?q=${encodeURIComponent(q)}`);
     const body = await res.json();
     if (req !== s.req) return;
     if (!body.ok) throw new Error(body.error || 'Carian tak berjaya.');
@@ -1404,7 +1477,8 @@ async function runSongSearch(raw, { force = false } = {}) {
   } catch (err) {
     if (req !== s.req) return;
     s.status = 'error';
-    s.error = err instanceof TypeError ? 'Tak dapat sambung ke server app. Pastikan START.bat masih jalan.' : err.message;
+    const offline = state.store.online ? 'Tak dapat sambung ke server. Semak internet.' : 'Tak dapat sambung ke server app. Pastikan START.bat masih jalan.';
+    s.error = err instanceof TypeError || err instanceof SyntaxError ? offline : err.message;
   }
   renderSongs();
 }
@@ -1518,7 +1592,7 @@ function setBulkMode(on) {
 
 async function getMeta(url) {
   try {
-    const res = await fetch(`api/meta?url=${encodeURIComponent(url)}`);
+    const res = await api(`api/meta?url=${encodeURIComponent(url)}`);
     const body = await res.json();
     return body.ok ? body : null;
   } catch {
@@ -1652,7 +1726,7 @@ async function squareImage(file, max) {
   canvas.height = out;
   canvas.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, out, out);
   bmp.close?.();
-  return canvas.toDataURL('image/jpeg', 0.86);
+  return canvas.toDataURL('image/jpeg', 0.82);
 }
 
 function titleMissing(message) {
@@ -2112,6 +2186,7 @@ function bindEvents() {
     else if (act === 'import') $('#import-file').click();
     else if (act === 'remove-samples') removeSamples();
     else if (act === 'new-own') openEditor(null, { mode: 'own' });
+    else if (act === 'logout') logout();
   });
   $('#import-file').addEventListener('change', (e) => {
     const file = e.target.files?.[0];
@@ -2248,7 +2323,7 @@ function bindEvents() {
       return;
     }
     try {
-      ed.upload = await squareImage(file, 640);
+      ed.upload = await squareImage(file, 400); // kecil supaya muat dalam storan online
       f.cover.value = '';
       renderCoverPreview();
     } catch {
