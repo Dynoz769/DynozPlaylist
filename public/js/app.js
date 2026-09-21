@@ -244,6 +244,8 @@ async function init() {
   state.store.onAuthLost = (retry) => askLogin({ expired: true }).then(retry);
   bindEvents();
   renderAll();
+  // Pintasan app: "Cari lagu" buka terus tab carian
+  if (new URLSearchParams(location.search).get('view') === 'songs') setView('songs', { focus: true });
 }
 
 /* ---------- Log masuk (app online berkunci dengan kata laluan) ---------- */
@@ -292,6 +294,37 @@ $('#login-form').addEventListener('submit', async (e) => {
     button.disabled = false;
   }
 });
+
+/* ---------- Pasang app (PWA) ---------- */
+
+let installPrompt = null;
+const installed = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); // kita tunjuk butang sendiri dalam menu
+  installPrompt = e;
+  $('#menu-install').hidden = false;
+});
+addEventListener('appinstalled', () => {
+  installPrompt = null;
+  $('#menu-install').hidden = true;
+  toast('App dah dipasang. Buka dari skrin utama lepas ni.');
+});
+
+async function installApp() {
+  if (installPrompt) {
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    installPrompt = null;
+    $('#menu-install').hidden = outcome === 'accepted';
+    return;
+  }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  toast(ios
+    ? 'Kat iPhone/iPad: tekan butang Kongsi kat bawah Safari, skrol dan pilih "Add to Home Screen".'
+    : 'Dalam browser ni: buka menu browser (⋮ atau …) dan pilih "Install app" / "Add to Home screen".',
+  { timeout: 9000 });
+}
 
 // fetch ke API; kalau sesi tamat, minta log masuk dan cuba sekali lagi.
 async function api(path, options) {
@@ -560,6 +593,8 @@ function renderMenuInfo() {
   const samples = state.data.playlists.filter((p) => p.sample).length;
   $('#menu-samples').hidden = !samples;
   $('#menu-logout').hidden = !s.locked;
+  if (installed()) $('#menu-install').hidden = true;
+  else if (installPrompt || !('onbeforeinstallprompt' in window)) $('#menu-install').hidden = false;
   $('#menu-foot').innerHTML = s.kind !== 'file'
     ? 'Data disimpan dalam browser ni je. Eksport backup selalu supaya tak hilang.'
     : s.online
@@ -2203,6 +2238,7 @@ function bindEvents() {
     else if (act === 'remove-samples') removeSamples();
     else if (act === 'new-own') openEditor(null, { mode: 'own' });
     else if (act === 'logout') logout();
+    else if (act === 'install') installApp();
   });
   $('#import-file').addEventListener('change', (e) => {
     const file = e.target.files?.[0];

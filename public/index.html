@@ -8,7 +8,13 @@
   <meta name="theme-color" content="#ECECF5" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Dynoz">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&family=Martian+Mono:wdth,wght@75..112.5,100..800&family=Onest:wght@400..800&display=swap">
@@ -286,6 +292,10 @@
       <hr>
       <button type="button" class="menu-item is-danger" data-menu="remove-samples"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg>Buang playlist contoh</button>
     </div>
+    <div id="menu-install" hidden>
+      <hr>
+      <button type="button" class="menu-item" data-menu="install"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Pasang app ni</button>
+    </div>
     <div id="menu-logout" hidden>
       <hr>
       <button type="button" class="menu-item" data-menu="logout"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>Log keluar</button>
@@ -321,5 +331,21 @@
 
   <input type="file" id="import-file" accept="application/json,.json" hidden>
   <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+  <script>
+    // Service worker: benarkan app dipasang dan buka laju. Kalau gagal, app tetap jalan macam biasa.
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      var hadController = Boolean(navigator.serviceWorker.controller);
+      var reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!hadController || reloading) return; // versi baru diambil alih — muat semula sekali
+        reloading = true;
+        location.reload();
+      });
+      addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  </script>
 </body>
 </html>
