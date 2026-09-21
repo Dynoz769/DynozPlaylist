@@ -45,62 +45,62 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121329;
-    --surface: #1A1C39;
-    --surface-2: #202346;
-    --surface-3: #292C55;
-    --line: #2D305E;
-    --line-strong: #464A88;
-    --ink: #EEEFFF;
-    --ink-2: #B4B6DC;
-    --ink-3: #8588B8;
+    --bg: #000000;
+    --surface: #101210;
+    --surface-2: #171A16;
+    --surface-3: #20241E;
+    --line: #262B23;
+    --line-strong: #3E463A;
+    --ink: #F1F3ED;
+    --ink-2: #BAC1B3;
+    --ink-3: #8A9284;
     --sticker: #B6FF3B;
     --sticker-hover: #C9FF6B;
     --sticker-edge: #B6FF3B;
-    --active-bg: #EEEFFF;
-    --active-ink: #121329;
+    --active-bg: #F1F3ED;
+    --active-ink: #000000;
     --focus: #B6FF3B;
     --stamp: #AFB3FF;
     --danger: #FF7088;
-    --danger-bg: #3A1831;
-    --vinyl: #07070C;
-    --groove: #171722;
-    --scrim: rgb(4 5 16 / .62);
+    --danger-bg: #331018;
+    --vinyl: #080808;
+    --groove: #1A1A1A;
+    --scrim: rgb(0 0 0 / .72);
     --shadow: 0 0 0;
-    --shadow-a: .42;
-    --toast-bg: #EEEFFF;
-    --toast-ink: #121329;
+    --shadow-a: .6;
+    --toast-bg: #F1F3ED;
+    --toast-ink: #0A0A0A;
     --toast-action: #2F7A12;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #121329;
-  --surface: #1A1C39;
-  --surface-2: #202346;
-  --surface-3: #292C55;
-  --line: #2D305E;
-  --line-strong: #464A88;
-  --ink: #EEEFFF;
-  --ink-2: #B4B6DC;
-  --ink-3: #8588B8;
+  --bg: #000000;
+  --surface: #101210;
+  --surface-2: #171A16;
+  --surface-3: #20241E;
+  --line: #262B23;
+  --line-strong: #3E463A;
+  --ink: #F1F3ED;
+  --ink-2: #BAC1B3;
+  --ink-3: #8A9284;
   --sticker: #B6FF3B;
   --sticker-hover: #C9FF6B;
   --sticker-edge: #B6FF3B;
-  --active-bg: #EEEFFF;
-  --active-ink: #121329;
+  --active-bg: #F1F3ED;
+  --active-ink: #000000;
   --focus: #B6FF3B;
   --stamp: #AFB3FF;
   --danger: #FF7088;
-  --danger-bg: #3A1831;
-  --vinyl: #07070C;
-  --groove: #171722;
-  --scrim: rgb(4 5 16 / .62);
+  --danger-bg: #331018;
+  --vinyl: #080808;
+  --groove: #1A1A1A;
+  --scrim: rgb(0 0 0 / .72);
   --shadow: 0 0 0;
-  --shadow-a: .42;
-  --toast-bg: #EEEFFF;
-  --toast-ink: #121329;
+  --shadow-a: .6;
+  --toast-bg: #F1F3ED;
+  --toast-ink: #0A0A0A;
   --toast-action: #2F7A12;
   color-scheme: dark;
 }
