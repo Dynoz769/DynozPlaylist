@@ -109,7 +109,7 @@ const state = {
   now: null,
   paused: false,
   shuffle: false,
-  repeat: true,
+  repeatMode: 'all', // 'all' = ulang playlist, 'one' = ulang lagu ni, 'off' = berhenti bila habis
   expanded: false,
   target: null, // playlist buatan sendiri yang terima lagu bila tekan +
   songs: { q: '', typed: '', status: 'idle', results: [], error: '', req: 0 },
@@ -123,12 +123,13 @@ function loadPrefs() {
     if (['recent', 'played', 'plays', 'az', 'no'].includes(prefs.sort)) state.sort = prefs.sort;
     if (typeof prefs.target === 'string') state.target = prefs.target;
     state.shuffle = Boolean(prefs.shuffle);
-    state.repeat = prefs.repeat !== false;
+    if (['all', 'one', 'off'].includes(prefs.repeatMode)) state.repeatMode = prefs.repeatMode;
+    else if (prefs.repeat === false) state.repeatMode = 'off'; // tetapan lama
   } catch {}
 }
 function savePrefs() {
   try {
-    localStorage.setItem(PREFS_KEY, JSON.stringify({ sort: state.sort, target: state.target, shuffle: state.shuffle, repeat: state.repeat }));
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ sort: state.sort, target: state.target, shuffle: state.shuffle, repeatMode: state.repeatMode }));
   } catch {}
 }
 
@@ -199,7 +200,16 @@ const songPlayer = new SongPlayer({
     syncPlayState();
   },
   onEnded() {
-    if (state.now?.kind === 'queue') step(1, { auto: true });
+    const kind = state.now?.kind;
+    if (!kind || kind === 'embed') return;
+    if (state.repeatMode === 'one') {
+      // Ulang lagu yang sama
+      songPlayer.restart();
+      state.paused = false;
+      syncPlayState();
+      return;
+    }
+    if (kind === 'queue') step(1, { auto: true });
   },
   onError: (code) => handlePlayerError(code),
 });
@@ -674,6 +684,8 @@ function renderTargetBar() {
 /* Lukis: deck (pemain)                                                */
 /* ================================================================== */
 
+const REPEAT_LABEL = { all: 'playlist', one: 'lagu ni', off: 'mati' };
+
 const TIPS = {
   spotify: 'Login Spotify dalam browser ni untuk dengar lagu penuh — kalau tak, cuma preview 30 saat.',
   apple: 'Login Apple Music dalam pemain untuk dengar lagu penuh — kalau tak, cuma preview.',
@@ -850,8 +862,9 @@ function renderDeck() {
   shuffleBtn.setAttribute('aria-pressed', String(state.shuffle));
   shuffleBtn.setAttribute('aria-label', `Main rawak: ${state.shuffle ? 'hidup' : 'mati'}`);
   const repeatBtn = $('#deck-controls [data-act="repeat"]');
-  repeatBtn.setAttribute('aria-pressed', String(state.repeat));
-  repeatBtn.setAttribute('aria-label', `Ulang playlist: ${state.repeat ? 'hidup' : 'mati'}`);
+  repeatBtn.setAttribute('aria-pressed', String(state.repeatMode !== 'off'));
+  repeatBtn.setAttribute('aria-label', `Ulang: ${REPEAT_LABEL[state.repeatMode]}`);
+  repeatBtn.querySelector('use')?.setAttribute('href', state.repeatMode === 'one' ? '#i-repeat-one' : '#i-repeat');
   if (yt) $('#player-tip').hidden = true;
 
   const info = $('#deck-info');
@@ -993,7 +1006,7 @@ function step(dir, { auto = false } = {}) {
   }
   let next = i + dir;
   if (next >= order.length) {
-    if (auto && !state.repeat) {
+    if (auto && state.repeatMode === 'off') {
       state.paused = true;
       syncPlayState();
       toast('Habis — semua lagu dalam playlist ni dah dimainkan.');
@@ -2119,12 +2132,15 @@ function bindEvents() {
         renderDeck();
         toast(state.shuffle ? 'Main rawak: hidup' : 'Main rawak: mati');
         break;
-      case 'repeat':
-        state.repeat = !state.repeat;
+      case 'repeat': {
+        // Kitar: ulang playlist → ulang lagu ni → mati
+        const modes = ['all', 'one', 'off'];
+        state.repeatMode = modes[(modes.indexOf(state.repeatMode) + 1) % modes.length];
         savePrefs();
         renderDeck();
-        toast(state.repeat ? 'Ulang playlist: hidup' : 'Ulang playlist: mati — berhenti bila habis');
+        toast(`Ulang: ${REPEAT_LABEL[state.repeatMode]}`);
         break;
+      }
       case 'fav': if (p) toggleFav(p.id); break;
       case 'edit': if (p) openEditor(p.id); break;
       case 'copy':

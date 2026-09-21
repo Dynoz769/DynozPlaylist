@@ -1225,7 +1225,6 @@ body.is-playing .deck-disc .disc-label { animation: spin 1.8s linear infinite; }
   translate: -50% 0;
 }
 .deck.is-song .deck-controls [data-act="shuffle"],
-.deck.is-song .deck-controls [data-act="repeat"],
 .deck.is-song .deck-controls [data-act="next"] { visibility: hidden; }
 .deck-actions .btn-clip { max-width: 100%; }
 .deck-actions .btn-clip span { overflow: hidden; text-overflow: ellipsis; }

@@ -33,7 +33,8 @@ Tak perlu `npm install`. App ni tak guna sebarang package luar.
    - Kotak **"Butang + masukkan lagu ke"** kat atas tunjuk playlist mana yang terima lagu. Klik untuk tukar atau buat playlist baru.
    - Tekan **✓** sekali lagi untuk buang lagu tu dari playlist.
 4. Playlist buatan sendiri muncul dalam rak dengan kulit mozek dari lagu-lagunya. Klik untuk main semua lagu berturutan.
-   - Kawalan: lagu sebelum / jeda / seterusnya, **main rawak** dan **ulang playlist**.
+   - Kawalan: lagu sebelum / jeda / seterusnya, **main rawak**, dan butang **ulang** yang berkitar: ulang playlist → **ulang lagu ni** (loop satu lagu) → mati.
+   - Lagu tunggal dari carian pun boleh di-loop: pilih *ulang lagu ni* masa lagu tu main.
    - Butang **⋯** pada setiap lagu: naik, turun, buang, atau buka di YouTube.
    - **Buka di YouTube** buka semua lagu (sampai 50) sebagai satu senarai main kat YouTube.
 
