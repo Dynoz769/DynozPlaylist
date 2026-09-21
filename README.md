@@ -2,6 +2,18 @@
 
 Rak peribadi untuk semua playlist aku: Spotify, YouTube, YouTube Music, SoundCloud, Apple Music, Deezer, JOOX, TIDAL dan link lain, semua dalam satu tempat. Boleh juga **cari lagu dan bina playlist sendiri** terus dalam app. Setiap playlist disimpan macam piring hitam dalam kulitnya, siap dengan nombor katalog (`DNZ-001`, `DNZ-002`, …).
 
+## Pasang sebagai app (PC, Android, iPhone)
+
+App ni sebuah PWA, jadi boleh dipasang terus dari browser — tiada kedai app, tiada fail APK.
+
+| Peranti | Cara |
+| --- | --- |
+| **PC (Chrome/Edge)** | Buka alamat app, tekan ikon **Install** dalam bar alamat, atau menu ☰ dalam app → *Pasang app ni* |
+| **Android (Chrome)** | Menu ☰ dalam app → *Pasang app ni*, atau menu browser (⋮) → *Add to Home screen* |
+| **iPhone / iPad (Safari)** | Butang **Kongsi** kat bawah → skrol → *Add to Home Screen* |
+
+Lepas dipasang, dia buka dalam tetingkap sendiri tanpa bar browser, ada ikon sendiri, dan rangka app dimuat dari simpanan tempatan (buka laju walaupun talian perlahan). Data playlist tetap diambil dari server, jadi sama kat semua peranti.
+
 ## Cara buka
 
 1. Pastikan **Node.js** dah ada (versi 18 ke atas). Semak dengan `node --version`.

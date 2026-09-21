@@ -593,8 +593,8 @@ function renderMenuInfo() {
   const samples = state.data.playlists.filter((p) => p.sample).length;
   $('#menu-samples').hidden = !samples;
   $('#menu-logout').hidden = !s.locked;
-  if (installed()) $('#menu-install').hidden = true;
-  else if (installPrompt || !('onbeforeinstallprompt' in window)) $('#menu-install').hidden = false;
+  // Sembunyi hanya kalau app memang dah dipasang; kalau tak, tunjuk (prompt browser atau arahan manual)
+  $('#menu-install').hidden = installed();
   $('#menu-foot').innerHTML = s.kind !== 'file'
     ? 'Data disimpan dalam browser ni je. Eksport backup selalu supaya tak hilang.'
     : s.online
