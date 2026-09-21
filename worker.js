@@ -14,6 +14,7 @@ const LOGIN_WINDOW = 15 * 60 * 1000;
 const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS store (id INTEGER PRIMARY KEY, rev INTEGER NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS login_fail (ip TEXT PRIMARY KEY, count INTEGER NOT NULL, first_at INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS rate_hits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, first_at INTEGER NOT NULL)',
 ];
 let schemaReady = null;
 
@@ -69,6 +70,20 @@ function d1Storage(db) {
       await ready();
       await db.prepare('DELETE FROM login_fail WHERE ip = ?1').bind(ip).run();
     },
+
+    // Had guna am (contoh: carian lagu) — pulangkan saat yang perlu ditunggu, 0 kalau masih boleh.
+    async rateLimited(key, limit, windowMs) {
+      await ready();
+      const now = Date.now();
+      await db.prepare(`
+        INSERT INTO rate_hits (key, count, first_at) VALUES (?1, 1, ?2)
+        ON CONFLICT(key) DO UPDATE SET
+          count = CASE WHEN ?2 - first_at > ?3 THEN 1 ELSE count + 1 END,
+          first_at = CASE WHEN ?2 - first_at > ?3 THEN ?2 ELSE first_at END`).bind(key, now, windowMs).run();
+      const row = await db.prepare('SELECT count, first_at FROM rate_hits WHERE key = ?1').bind(key).first();
+      if (!row || row.count <= limit) return 0;
+      return Math.ceil((row.first_at + windowMs - now) / 1000);
+    },
   };
 }
 
@@ -77,10 +92,12 @@ export default {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     configureSearch({ apiKey: env.YOUTUBE_API_KEY, region: env.DYNOZ_REGION });
+    // DYNOZ_OPEN="yes" (wrangler.toml) = terbuka kepada sesiapa yang ada link, tiada log masuk.
+    const open = String(env.DYNOZ_OPEN ?? '').toLowerCase() === 'yes';
     return handleApi(request, {
       storage: d1Storage(env.DB),
-      password: env.APP_PASSWORD?.trim() || '',
-      passwordRequired: true,
+      password: open ? '' : env.APP_PASSWORD?.trim() || '',
+      passwordRequired: !open,
       ip: request.headers.get('cf-connecting-ip') || 'unknown',
     });
   },

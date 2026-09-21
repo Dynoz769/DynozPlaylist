@@ -150,6 +150,7 @@ function serialized(fn) {
 // Had cubaan log masuk (dalam memori): 10 kali salah dalam 15 minit = tunggu.
 const LOGIN_WINDOW = 15 * 60 * 1000;
 const loginFails = new Map();
+const rateHits = new Map();
 
 const fileStorage = {
   label: DATA_LABEL,
@@ -189,6 +190,17 @@ const fileStorage = {
   },
   loginOk(ip) {
     loginFails.delete(ip);
+  },
+
+  // Had guna am (contoh: carian lagu). Dalam komputer sendiri, longgar je.
+  rateLimited(key, limit, windowMs) {
+    const hit = rateHits.get(key);
+    if (!hit || Date.now() - hit.first > windowMs) {
+      rateHits.set(key, { count: 1, first: Date.now() });
+      return 0;
+    }
+    hit.count += 1;
+    return hit.count > limit ? Math.ceil((hit.first + windowMs - Date.now()) / 1000) : 0;
   },
 };
 

@@ -12,6 +12,9 @@ binding = "ASSETS"
 
 [vars]
 DYNOZ_REGION = "MY"
+# "yes" = app online terbuka kepada sesiapa yang ada link (tiada skrin log masuk).
+# Tukar ke "no" + deploy semula untuk kunci balik dengan APP_PASSWORD.
+DYNOZ_OPEN = "yes"
 
 # Pangkalan data playlist (dibuat dengan "npx wrangler d1 create dynoz-playlist").
 [[d1_databases]]

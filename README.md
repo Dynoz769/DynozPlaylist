@@ -92,10 +92,13 @@ Versi online guna **Cloudflare Workers** (percuma, tak perlu kad kredit) dan sim
    ```
    npx wrangler d1 create dynoz-playlist
    ```
-4. Set kata laluan app (app online berkunci — tanpa ni, API tak jalan langsung):
-   ```
-   npx wrangler secret put APP_PASSWORD
-   ```
+4. Pilih sama ada app online terbuka atau berkunci, dalam `wrangler.toml`:
+   - `DYNOZ_OPEN = "yes"` — sesiapa yang ada link boleh tengok **dan ubah** playlist. Tiada skrin log masuk.
+   - `DYNOZ_OPEN = "no"` — berkunci. Set kata laluan sekali:
+     ```
+     npx wrangler secret put APP_PASSWORD
+     ```
+     Tanpa kata laluan, app berkunci tak jalan langsung (sengaja, supaya ia tak pernah terbuka tanpa disedari).
 5. Set YouTube API key supaya carian lagu jalan dari server online:
    ```
    npx wrangler secret put YOUTUBE_API_KEY
@@ -111,6 +114,8 @@ Alamat app akan keluar selepas deploy, contoh `https://dynoz-playlist.<nama-kau>
 
 Nota:
 - Data online dan data dalam komputer **berasingan**. Nak pindah: *Eksport backup* dari satu, *Import backup* kat satu lagi.
+- Bila `DYNOZ_OPEN = "yes"`, carian lagu dihadkan 40 kali sejam untuk setiap peranti supaya kuota YouTube API tak habis.
+- Nak kunci balik: tukar `DYNOZ_OPEN = "no"` dalam `wrangler.toml`, pastikan `APP_PASSWORD` dah diset, lepas tu `npm run deploy`.
 - Nak tukar kata laluan: `npx wrangler secret put APP_PASSWORD` sekali lagi. Semua peranti kena log masuk semula.
 - Nak tengok ralat server online: `npm run online:log`.
 - Nak cuba versi online kat komputer dulu: `npm run online` (data guna salinan tempatan, bukan data sebenar).
