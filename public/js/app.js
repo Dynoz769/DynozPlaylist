@@ -444,7 +444,7 @@ function renderSampleNote() {
 }
 
 const GEN_COLORS = [
-  ['#2A2DB8', '#FFD23F'],
+  ['#2A2DB8', '#B6FF3B'],
   ['#FF5D73', '#1A1033'],
   ['#0E8F82', '#F1EEFF'],
   ['#FFB23F', '#26135C'],

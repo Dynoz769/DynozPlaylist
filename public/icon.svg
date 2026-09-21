@@ -4,7 +4,7 @@
   <circle cx="32" cy="32" r="21" fill="none" stroke="#24243A" stroke-width="1.2"/>
   <circle cx="32" cy="32" r="17.5" fill="none" stroke="#24243A" stroke-width="1.2"/>
   <circle cx="32" cy="32" r="14" fill="none" stroke="#24243A" stroke-width="1.2"/>
-  <circle cx="32" cy="32" r="9" fill="#FFD23F"/>
-  <rect x="29" y="26.2" width="6" height="1.6" rx=".8" fill="#231B00"/>
+  <circle cx="32" cy="32" r="9" fill="#B6FF3B"/>
+  <rect x="29" y="26.2" width="6" height="1.6" rx=".8" fill="#0D1A00"/>
   <circle cx="32" cy="32" r="1.6" fill="#121329"/>
 </svg>

@@ -12,13 +12,13 @@
   --ink: #15163A;
   --ink-2: #44477A;
   --ink-3: #62659A;
-  --sticker: #FFD23F;
-  --sticker-hover: #FFDB63;
-  --sticker-ink: #231B00;
-  --sticker-edge: #E0B31C;
+  --sticker: #A8F02C;
+  --sticker-hover: #BCFA55;
+  --sticker-ink: #0D1A00;
+  --sticker-edge: #7FC219;
   --active-bg: #15163A;
   --active-ink: #FFFFFF;
-  --focus: #3439C9;
+  --focus: #2F7A12;
   --stamp: #3439C9;
   --danger: #C62840;
   --danger-bg: #FCE8EB;
@@ -29,7 +29,7 @@
   --shadow-a: .16;
   --toast-bg: #15163A;
   --toast-ink: #FFFFFF;
-  --toast-action: #FFD23F;
+  --toast-action: #B6FF3B;
 
   --display: 'Anybody', 'Arial Narrow', 'Segoe UI', system-ui, sans-serif;
   --body: 'Onest', 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -54,10 +54,12 @@
     --ink: #EEEFFF;
     --ink-2: #B4B6DC;
     --ink-3: #8588B8;
-    --sticker-edge: #FFD23F;
+    --sticker: #B6FF3B;
+    --sticker-hover: #C9FF6B;
+    --sticker-edge: #B6FF3B;
     --active-bg: #EEEFFF;
     --active-ink: #121329;
-    --focus: #FFD23F;
+    --focus: #B6FF3B;
     --stamp: #AFB3FF;
     --danger: #FF7088;
     --danger-bg: #3A1831;
@@ -68,7 +70,7 @@
     --shadow-a: .42;
     --toast-bg: #EEEFFF;
     --toast-ink: #121329;
-    --toast-action: #3439C9;
+    --toast-action: #2F7A12;
     color-scheme: dark;
   }
 }
@@ -83,10 +85,12 @@
   --ink: #EEEFFF;
   --ink-2: #B4B6DC;
   --ink-3: #8588B8;
-  --sticker-edge: #FFD23F;
+  --sticker: #B6FF3B;
+  --sticker-hover: #C9FF6B;
+  --sticker-edge: #B6FF3B;
   --active-bg: #EEEFFF;
   --active-ink: #121329;
-  --focus: #FFD23F;
+  --focus: #B6FF3B;
   --stamp: #AFB3FF;
   --danger: #FF7088;
   --danger-bg: #3A1831;
@@ -97,7 +101,7 @@
   --shadow-a: .42;
   --toast-bg: #EEEFFF;
   --toast-ink: #121329;
-  --toast-action: #3439C9;
+  --toast-action: #2F7A12;
   color-scheme: dark;
 }
 

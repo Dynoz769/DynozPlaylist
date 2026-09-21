@@ -2,7 +2,7 @@
 // Fail ni dikongsi: browser (app.js) dan server (server.js), jadi jangan guna DOM kat sini.
 
 export const PLATFORMS = {
-  dynoz:      { name: 'Buatan sendiri', color: '#FFD23F' }, // playlist yang dibina dalam app (lagu dari YouTube)
+  dynoz:      { name: 'Buatan sendiri', color: '#B6FF3B' }, // playlist yang dibina dalam app (lagu dari YouTube)
   spotify:    { name: 'Spotify',       color: '#1ED760' },
   youtube:    { name: 'YouTube',       color: '#FF0033' },
   ytmusic:    { name: 'YouTube Music', color: '#FF0033' },
